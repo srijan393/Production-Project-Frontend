@@ -12,17 +12,34 @@ export default function Signup() {
 
   const navigate = useNavigate();
 
+  const getErrorMessage = (err) => {
+    const data = err?.response?.data;
+
+    if (typeof data === "string" && data.trim()) return data;
+    if (data?.message) return data.message;
+    if (data?.error) return data.error;
+    if (err?.code === "ERR_NETWORK") return "Cannot connect to server";
+
+    return "Signup failed";
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMsg("");
     setError("");
 
     try {
-      await api.post("/auth/signup", { fullName, username, email, password });
+      await api.post("/auth/signup", {
+        fullName: fullName.trim(),
+        username: username.trim(),
+        email: email.trim(),
+        password,
+      });
+
       setMsg("Signup successful. Please login.");
       setTimeout(() => navigate("/login"), 600);
     } catch (err) {
-      setError("Signup failed");
+      setError(getErrorMessage(err)); // ✅ FIXED
       console.log("SIGNUP ERROR:", err?.response?.status, err?.response?.data);
     }
   };
@@ -34,23 +51,54 @@ export default function Signup() {
       {error && <p style={{ color: "#ef4444" }}>{error}</p>}
 
       <form onSubmit={handleSubmit}>
-        <input className="input" placeholder="Full Name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+        <input
+          className="input"
+          placeholder="Full Name"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          required
+        />
         <div style={{ height: 10 }} />
 
-        <input className="input" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} required />
+        <input
+          className="input"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+        />
         <div style={{ height: 10 }} />
 
-        <input className="input" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <input
+          className="input"
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
         <div style={{ height: 10 }} />
 
-        <input className="input" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <input
+          className="input"
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
         <div style={{ height: 12 }} />
 
-        <button className="btn primary" type="submit">Create account</button>
+        <button className="btn primary" type="submit">
+          Create account
+        </button>
       </form>
 
       <p className="small" style={{ marginTop: 12 }}>
-        Already have an account? <Link to="/login" style={{ color: "#c4b5fd" }}>Login</Link>
+        Already have an account?{" "}
+        <Link to="/login" style={{ color: "#c4b5fd" }}>
+          Login
+        </Link>
       </p>
     </div>
   );

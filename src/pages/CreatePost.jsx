@@ -1,118 +1,98 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
-import "../App.css";
 
 export default function CreatePost() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
+
+  const getErrorMessage = (err) => {
+    const data = err?.response?.data;
+
+    console.log("CREATE POST ERROR FULL:", err);
+    console.log("CREATE POST ERROR DATA:", data);
+
+    if (typeof data === "string" && data.trim()) return data;
+    if (data?.message && typeof data.message === "string") return data.message;
+    if (data?.error && typeof data.error === "string") return data.error;
+    if (err?.response?.status === 401) return "Please login first";
+    if (err?.response?.status === 403) return "Forbidden. Please log in again.";
+    if (err?.code === "ERR_NETWORK") return "Network Error";
+
+    return "Post failed";
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setError("Please login first.");
-      return;
-    }
+    setLoading(true);
 
     try {
-      setLoading(true);
-
       await api.post("/posts", {
-        title,
-        body,
+        title: title.trim(),
+        body: body.trim(),
       });
 
-      setTitle("");
-      setBody("");
       navigate("/home");
     } catch (err) {
-      console.log("CREATE POST ERROR:", err?.response?.status, err?.response?.data, err?.message);
-
-      const data = err?.response?.data;
-
-      let message = "Failed to create post";
-
-      if (typeof data === "string") {
-        message = data;
-      } else if (data?.message) {
-        message = data.message;
-      } else if (data?.error) {
-        message = data.error;
-      } else if (err?.message) {
-        message = err.message;
-      }
-
-      setError(message);
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="container">
-      <div className="create-shell">
-        <div className="create-card">
-          <div className="create-topline">
-            <span className="post-chip">Ask a Question</span>
-          </div>
+    <div style={{ maxWidth: 700, margin: "60px auto" }} className="panel">
+      <h2 style={{ marginTop: 0 }}>Create a new academic question</h2>
 
-          <h1 className="create-title">Create a new academic question</h1>
-          <p className="create-subtitle">
-            Ask clearly, give enough context, and let the community provide the best answer.
-          </p>
+      <p style={{ color: "#9ca3af" }}>
+        Ask clearly, give enough context, and let the community provide the best answer.
+      </p>
 
-          <form onSubmit={handleSubmit}>
-            <div className="create-field">
-              <label className="create-label">Question Title</label>
-              <input
-                className="create-input"
-                type="text"
-                placeholder="Enter a clear question title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-              />
-            </div>
+      <form onSubmit={handleSubmit}>
+        <label>Question Title</label>
+        <input
+          className="input"
+          placeholder="Enter question title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+        />
 
-            <div className="create-field">
-              <label className="create-label">Question Details</label>
-              <textarea
-                className="create-textarea"
-                placeholder="Describe your question with enough detail"
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                rows={10}
-                required
-              />
-            </div>
+        <div style={{ height: 12 }} />
 
-            <div className="ai-line" style={{ marginBottom: 18 }}>
-              AI moderation will check for safe and appropriate content before publishing.
-            </div>
+        <label>Question Details</label>
+        <textarea
+          className="input"
+          style={{ minHeight: 150 }}
+          placeholder="Explain your question in detail..."
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          required
+        />
 
-            {error && (
-              <div className="feed-error" style={{ marginBottom: 16 }}>
-                {error}
-              </div>
-            )}
+        <div style={{ height: 12 }} />
 
-            <div className="post-action-row">
-              <button className="post-btn secondary" type="button" onClick={() => navigate("/home")}>
-                Cancel
-              </button>
-              <button className="post-btn" type="submit" disabled={loading}>
-                {loading ? "Posting..." : "Post Question"}
-              </button>
-            </div>
-          </form>
+        <p style={{ fontSize: 12, color: "#9ca3af" }}>
+          AI moderation will check for safe and appropriate content before publishing.
+        </p>
+
+        {error && <p style={{ color: "#ef4444", marginTop: 10 }}>{error}</p>}
+
+        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+          <button type="button" className="btn" onClick={() => navigate("/home")}>
+            Cancel
+          </button>
+
+          <button type="submit" className="btn primary" disabled={loading}>
+            {loading ? "Posting..." : "Post Question"}
+          </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

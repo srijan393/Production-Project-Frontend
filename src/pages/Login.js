@@ -9,19 +9,33 @@ export default function Login() {
 
   const navigate = useNavigate();
 
+  const getErrorMessage = (err) => {
+    const data = err?.response?.data;
+
+    if (typeof data === "string" && data.trim()) return data;
+    if (data?.message) return data.message;
+    if (data?.error) return data.error;
+    if (err?.code === "ERR_NETWORK") return "Cannot connect to server";
+
+    return "Login failed";
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
-      const res = await api.post("/auth/login", { username, password });
+      const res = await api.post("/auth/login", {
+        username: username.trim(),
+        password,
+      });
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("role", res.data.role);
 
-      navigate("/home"); // ✅ changed from /dashboard
+      navigate("/home");
     } catch (err) {
-      setError("Login failed");
+      setError(getErrorMessage(err)); // ✅ FIXED
       console.log("LOGIN ERROR:", err?.response?.status, err?.response?.data);
     }
   };
@@ -57,7 +71,10 @@ export default function Login() {
       </form>
 
       <p className="small" style={{ marginTop: 12 }}>
-        Don’t have an account? <Link to="/signup" style={{ color: "#c4b5fd" }}>Signup</Link>
+        Don’t have an account?{" "}
+        <Link to="/signup" style={{ color: "#c4b5fd" }}>
+          Signup
+        </Link>
       </p>
     </div>
   );
