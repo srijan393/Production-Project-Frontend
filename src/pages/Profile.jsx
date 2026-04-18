@@ -45,7 +45,8 @@ export default function Profile() {
     if (typeof data === "string" && data.trim()) return data;
     if (data?.message && typeof data.message === "string") return data.message;
     if (data?.error && typeof data.error === "string") return data.error;
-    if (Array.isArray(data) && data.length > 0) return String(data[0]);
+    if (err?.response?.status === 401) return "Please login again";
+    if (err?.response?.status === 403) return "Please login again";
     return fallback;
   };
 
@@ -55,7 +56,9 @@ export default function Profile() {
       setError("");
       setSuccess("");
 
-      const res = await api.put("/users/me", {
+      console.log("SAVING TO /users/update-profile");
+
+      const res = await api.post("/users/update-profile", {
         fullName: form.fullName.trim(),
         username: form.username.trim(),
         email: form.email.trim(),
