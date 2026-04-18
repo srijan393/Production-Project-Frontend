@@ -76,16 +76,6 @@ export default function PostDetails() {
     }
   };
 
-  const pinBestAnswer = async (commentId) => {
-    try {
-      await api.post(`/posts/${id}/best-answer/${commentId}`);
-      await loadPage();
-    } catch (err) {
-      console.log("PIN BEST ANSWER ERROR:", err?.response?.status, err?.response?.data, err?.message);
-      alert(err?.response?.data?.message || err?.response?.data?.error || "Failed to pin best answer");
-    }
-  };
-
   const pageStyle = {
     maxWidth: 1150,
     margin: "0 auto",
@@ -256,14 +246,6 @@ export default function PostDetails() {
 
               <div style={{ marginTop: 14, fontSize: 18, lineHeight: 1.6 }}>{c.content}</div>
               <div style={{ marginTop: 12, color: "#cbd5e1" }}>AI check: ✅ ok</div>
-
-              {token && post.bestCommentId !== c.id && (
-                <div style={{ marginTop: 14 }}>
-                  <button style={btnStyle} onClick={() => pinBestAnswer(c.id)}>
-                    Pin as Best Answer
-                  </button>
-                </div>
-              )}
             </div>
           ))}
 
