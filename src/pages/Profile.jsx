@@ -56,9 +56,9 @@ export default function Profile() {
       setError("");
       setSuccess("");
 
-      console.log("SAVING TO /users/update-profile");
+      console.log("SAVING TO /auth/update-profile");
 
-      const res = await api.post("/users/update-profile", {
+      const res = await api.post("/auth/update-profile", {
         fullName: form.fullName.trim(),
         username: form.username.trim(),
         email: form.email.trim(),
