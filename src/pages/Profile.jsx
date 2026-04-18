@@ -43,15 +43,9 @@ export default function Profile() {
     console.log("UPDATE ERROR DATA:", data);
 
     if (typeof data === "string" && data.trim()) return data;
-
-    if (data?.message && typeof data.message === "string") {
-      return data.message;
-    }
-
-    if (data?.error && typeof data.error === "string") {
-      return data.error;
-    }
-
+    if (data?.message && typeof data.message === "string") return data.message;
+    if (data?.error && typeof data.error === "string") return data.error;
+    if (Array.isArray(data) && data.length > 0) return String(data[0]);
     return fallback;
   };
 
