@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function Settings() {
   const navigate = useNavigate();
+  const role = localStorage.getItem("role");
 
   const logout = () => {
     localStorage.removeItem("token");
@@ -94,7 +95,7 @@ export default function Settings() {
         <div style={sectionCardStyle}>
           <div style={titleStyle}>Profile</div>
           <div style={descStyle}>
-            View and update your full name, username, and email.
+            View and update your full name, username, email, bio, and interests.
           </div>
           <button style={primaryBtnStyle} onClick={() => navigate("/profile")}>
             Open Profile
@@ -114,12 +115,24 @@ export default function Settings() {
         <div style={sectionCardStyle}>
           <div style={titleStyle}>Discover & People</div>
           <div style={descStyle}>
-            Explore users and connect with other people on SocialHub.
+            Explore users, follow people, and grow your network on SocialHub.
           </div>
           <button style={btnStyle} onClick={() => navigate("/discover")}>
             Open Discover
           </button>
         </div>
+
+        {role === "ADMIN" && (
+          <div style={sectionCardStyle}>
+            <div style={titleStyle}>Admin Panel</div>
+            <div style={descStyle}>
+              View platform statistics, manage users, remove posts or comments, and review flagged content.
+            </div>
+            <button style={primaryBtnStyle} onClick={() => navigate("/admin")}>
+              Open Admin Panel
+            </button>
+          </div>
+        )}
 
         <div style={sectionCardStyle}>
           <div style={titleStyle}>Session</div>
