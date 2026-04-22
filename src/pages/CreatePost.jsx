@@ -14,14 +14,40 @@ export default function CreatePost() {
     const data = err?.response?.data;
 
     console.log("CREATE POST ERROR FULL:", err);
-    console.log("CREATE POST ERROR DATA:", data);
+    console.log("CREATE POST STATUS:", err?.response?.status);
+    console.log("CREATE POST ERROR DATA:", JSON.stringify(data, null, 2));
 
-    if (typeof data === "string" && data.trim()) return data;
-    if (data?.message && typeof data.message === "string") return data.message;
-    if (data?.error && typeof data.error === "string") return data.error;
-    if (err?.response?.status === 401) return "Please login first";
-    if (err?.response?.status === 403) return "Forbidden. Please log in again.";
-    if (err?.code === "ERR_NETWORK") return "Network Error";
+    if (typeof data === "string" && data.trim()) {
+      return data;
+    }
+
+    if (data?.message && typeof data.message === "string" && data.message.trim()) {
+      return data.message;
+    }
+
+    if (data?.error && typeof data.error === "string" && data.error.trim()) {
+      return data.error;
+    }
+
+    if (err?.response?.status === 401) {
+      return "Please login first";
+    }
+
+    if (err?.response?.status === 403) {
+      return "Forbidden. Please log in again.";
+    }
+
+    if (err?.response?.status === 500) {
+      return "Internal Server Error";
+    }
+
+    if (err?.response?.status === 502) {
+      return "Bad Gateway";
+    }
+
+    if (err?.code === "ERR_NETWORK") {
+      return "Network Error";
+    }
 
     return "Post failed";
   };
@@ -84,7 +110,12 @@ export default function CreatePost() {
         {error && <p style={{ color: "#ef4444", marginTop: 10 }}>{error}</p>}
 
         <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-          <button type="button" className="btn" onClick={() => navigate("/home")}>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => navigate("/home")}
+            disabled={loading}
+          >
             Cancel
           </button>
 
