@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
 export default function Profile() {
+  const navigate = useNavigate();
+
   const [user, setUser] = useState(null);
   const [followingUsers, setFollowingUsers] = useState([]);
   const [form, setForm] = useState({
@@ -12,51 +14,72 @@ export default function Profile() {
     bio: "",
     interests: "",
   });
+
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [unfollowingId, setUnfollowingId] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const navigate = useNavigate();
+  const token = localStorage.getItem("token");
+
+  const getErrorMessage = (err, fallback = "Something went wrong") => {
+    const data = err?.response?.data;
+    if (typeof data === "string" && data.trim()) return data;
+    if (data?.message) return data.message;
+    if (data?.error) return data.error;
+    return fallback;
+  };
 
   const loadProfile = async () => {
     try {
+      setLoading(true);
       setError("");
+
       const [profileRes, followingRes] = await Promise.all([
         api.get("/users/me"),
         api.get("/users/me/following"),
       ]);
 
-      setUser(profileRes.data);
-      setFollowingUsers(followingRes.data || []);
+      const profile = profileRes.data || {};
+      const following = followingRes.data || [];
+
+      setUser(profile);
+      setFollowingUsers(following);
 
       setForm({
-        fullName: profileRes.data.fullName || "",
-        username: profileRes.data.username || "",
-        email: profileRes.data.email || "",
-        bio: profileRes.data.bio || "",
-        interests: profileRes.data.interests || "",
+        fullName: profile.fullName || "",
+        username: profile.username || "",
+        email: profile.email || "",
+        bio: profile.bio || "",
+        interests: profile.interests || "",
       });
     } catch (err) {
-      console.log("PROFILE ERROR:", err?.response?.status, err?.response?.data);
-      setError("Failed to load profile");
+      console.log("PROFILE ERROR:", err?.response?.status, err?.response?.data, err?.message);
+
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        navigate("/login");
+        return;
+      }
+
+      setError(getErrorMessage(err, "Failed to load profile"));
+      setUser(null);
+      setFollowingUsers([]);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
     loadProfile();
-  }, []);
-
-  const getErrorMessage = (err, fallback) => {
-    const data = err?.response?.data;
-
-    if (typeof data === "string" && data.trim()) return data;
-    if (data?.message) return data.message;
-    if (data?.error) return data.error;
-
-    return fallback;
-  };
+  }, [token, navigate]);
 
   const handleSave = async () => {
     try {
@@ -64,28 +87,31 @@ export default function Profile() {
       setError("");
       setSuccess("");
 
-      const res = await api.post("/auth/update-profile", {
+      const payload = {
         fullName: form.fullName.trim(),
         username: form.username.trim(),
         email: form.email.trim(),
         bio: form.bio.trim(),
         interests: form.interests.trim(),
-      });
+      };
 
-      setUser(res.data);
+      const res = await api.post("/auth/update-profile", payload);
+
+      const updated = res.data || {};
+      setUser(updated);
       setForm({
-        fullName: res.data.fullName || "",
-        username: res.data.username || "",
-        email: res.data.email || "",
-        bio: res.data.bio || "",
-        interests: res.data.interests || "",
+        fullName: updated.fullName || "",
+        username: updated.username || "",
+        email: updated.email || "",
+        bio: updated.bio || "",
+        interests: updated.interests || "",
       });
 
       setEditing(false);
       setSuccess("Profile updated successfully");
       await loadProfile();
     } catch (err) {
-      console.log("UPDATE PROFILE ERROR:", err?.response?.status, err?.response?.data);
+      console.log("UPDATE PROFILE ERROR:", err?.response?.status, err?.response?.data, err?.message);
       setError(getErrorMessage(err, "Failed to update profile"));
     } finally {
       setSaving(false);
@@ -95,11 +121,17 @@ export default function Profile() {
   const handleUnfollow = async (userId) => {
     try {
       setUnfollowingId(userId);
+      setError("");
+      setSuccess("");
+
       await api.delete(`/users/${userId}/follow`);
+
+      setFollowingUsers((prev) => prev.filter((u) => u.id !== userId));
+      setSuccess("User unfollowed successfully");
       await loadProfile();
     } catch (err) {
-      console.log("UNFOLLOW ERROR:", err?.response?.status, err?.response?.data);
-      alert(getErrorMessage(err, "Failed to unfollow"));
+      console.log("UNFOLLOW ERROR:", err?.response?.status, err?.response?.data, err?.message);
+      setError(getErrorMessage(err, "Failed to unfollow"));
     } finally {
       setUnfollowingId(null);
     }
@@ -177,13 +209,30 @@ export default function Profile() {
     textAlign: "center",
   };
 
-  if (!user) {
+  if (loading) {
     return (
       <div style={pageStyle}>
         <div style={cardStyle}>Loading profile...</div>
       </div>
     );
   }
+
+  if (!loading && error && !user) {
+    return (
+      <div style={pageStyle}>
+        <div style={{ ...cardStyle, border: "1px solid rgba(239,68,68,0.35)", color: "#fecaca" }}>
+          <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 8 }}>Profile</div>
+          <div>{error}</div>
+          <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button style={btnStyle} onClick={() => navigate("/home")}>Back</button>
+            <button style={primaryBtnStyle} onClick={loadProfile}>Retry</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <div style={pageStyle}>
@@ -204,12 +253,17 @@ export default function Profile() {
         </div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <button style={btnStyle} onClick={() => navigate("/home")}>
-            Back
-          </button>
+          <button style={btnStyle} onClick={() => navigate("/home")}>Back</button>
 
           {!editing ? (
-            <button style={primaryBtnStyle} onClick={() => setEditing(true)}>
+            <button
+              style={primaryBtnStyle}
+              onClick={() => {
+                setEditing(true);
+                setError("");
+                setSuccess("");
+              }}
+            >
               Edit Profile
             </button>
           ) : (
@@ -231,6 +285,7 @@ export default function Profile() {
               >
                 Cancel
               </button>
+
               <button style={primaryBtnStyle} onClick={handleSave} disabled={saving}>
                 {saving ? "Saving..." : "Save"}
               </button>
@@ -240,13 +295,27 @@ export default function Profile() {
       </div>
 
       {error && (
-        <div style={{ ...cardStyle, color: "#fecaca", marginBottom: 12, border: "1px solid rgba(239,68,68,0.35)" }}>
+        <div
+          style={{
+            ...cardStyle,
+            border: "1px solid rgba(239,68,68,0.35)",
+            color: "#fecaca",
+            marginBottom: 12,
+          }}
+        >
           {error}
         </div>
       )}
 
       {success && (
-        <div style={{ ...cardStyle, color: "#bbf7d0", marginBottom: 12, border: "1px solid rgba(34,197,94,0.35)" }}>
+        <div
+          style={{
+            ...cardStyle,
+            border: "1px solid rgba(34,197,94,0.35)",
+            color: "#bbf7d0",
+            marginBottom: 12,
+          }}
+        >
           {success}
         </div>
       )}
@@ -369,8 +438,8 @@ export default function Profile() {
                     {u.bio || "No bio added yet."}
                   </div>
                   <div style={{ marginTop: 8, color: "#cbd5e1", fontSize: 14 }}>
-                    <strong>{u.followersCount}</strong> followers ·{" "}
-                    <strong>{u.followingCount}</strong> following
+                    <strong>{u.followersCount || 0}</strong> followers ·{" "}
+                    <strong>{u.followingCount || 0}</strong> following
                   </div>
                 </div>
 
